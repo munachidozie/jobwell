@@ -1,0 +1,7 @@
+allowBuilds:
+  electron: true
+  esbuild: true
+enablePrePostScripts: true
+# Hoisted layout so electron-builder can collect production dependencies
+# reliably (pnpm's default symlinked store can trip up its dependency walk).
+nodeLinker: hoisted

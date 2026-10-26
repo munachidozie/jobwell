@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        width: 280px;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        margin: 0;
+        padding: 14px;
+        background: #171a21;
+        color: #e6e8ec;
+      }
+      h1 {
+        font-size: 15px;
+        margin: 0 0 8px;
+      }
+      .hint {
+        color: #9aa2b1;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        margin: 6px 0;
+        padding: 7px;
+        border-radius: 6px;
+        border: 1px solid #2a2f3a;
+        background: #1f232c;
+        color: #e6e8ec;
+      }
+      button {
+        width: 100%;
+        padding: 9px;
+        border: none;
+        border-radius: 7px;
+        background: #5b9dff;
+        color: #06101f;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 6px;
+      }
+      .status {
+        margin-top: 10px;
+        font-size: 12px;
+      }
+      .warn {
+        color: #f5c451;
+        font-size: 12px;
+        margin-top: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>JobWell Form Filler</h1>
+    <p class="hint">
+      Pair with your local JobWell app, then fill the current application form.
+    </p>
+    <label class="hint">Port<input id="port" placeholder="e.g. 51234" /></label>
+    <label class="hint">Token<input id="token" placeholder="paste pairing token" /></label>
+    <button id="pair">Pair</button>
+    <button id="fill" disabled>Fill this form</button>
+    <p class="warn">This never submits. You review and submit yourself.</p>
+    <div class="status" id="status"></div>
+    <script src="popup.js"></script>
+  </body>
+</html>

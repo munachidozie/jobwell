@@ -1,0 +1,86 @@
+{
+  "name": "jobwell",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A private, local-first job-search app for Windows: employer boards, a local job store, transparent match scores, and an application tracker.",
+  "license": "MIT",
+  "author": "JobWell",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "dev": "concurrently -k -n VITE,ELECTRON -c cyan,magenta \"pnpm dev:renderer\" \"pnpm dev:electron\"",
+    "dev:renderer": "vite",
+    "dev:electron": "tsc -p tsconfig.main.json -w & tsc-alias -p tsconfig.main.json -w",
+    "build": "pnpm build:renderer && pnpm build:main",
+    "build:renderer": "vite build",
+    "build:main": "tsc -p tsconfig.main.json && tsc-alias -p tsconfig.main.json",
+    "start": "pnpm build && electron .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --config vitest.config.ts",
+    "icon": "node scripts/generate-icon.mjs",
+    "dist": "pnpm build && electron-builder --win",
+    "dist:dir": "pnpm build && electron-builder --win --dir"
+  },
+  "dependencies": {
+    "docx": "^9.0.3",
+    "mammoth": "^1.8.0",
+    "pdf-parse": "^1.1.1",
+    "pdfkit": "^0.15.1",
+    "sql.js": "^1.12.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/sql.js": "^1.4.9",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.0",
+    "electron": "^33.2.1",
+    "electron-builder": "25.1.8",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsc-alias": "^1.8.10",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3",
+    "vitest": "^2.1.8"
+  },
+  "build": {
+    "appId": "com.jobwell.app",
+    "productName": "JobWell",
+    "copyright": "Copyright © 2026 JobWell",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
+    ],
+    "asarUnpack": [
+      "**/node_modules/sql.js/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "JobWell"
+    }
+  }
+}

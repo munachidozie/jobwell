@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "JobWell Form Filler",
+  "version": "0.1.0",
+  "description": "Fills job application forms from your local JobWell app. Never submits — you review and click submit yourself.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": [
+    "https://boards.greenhouse.io/*",
+    "https://job-boards.greenhouse.io/*",
+    "https://jobs.lever.co/*",
+    "https://jobs.ashbyhq.com/*",
+    "https://apply.workable.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "JobWell Form Filler"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://boards.greenhouse.io/*",
+        "https://job-boards.greenhouse.io/*",
+        "https://jobs.lever.co/*",
+        "https://jobs.ashbyhq.com/*",
+        "https://apply.workable.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
