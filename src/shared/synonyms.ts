@@ -87,6 +87,13 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+// Join a multi-role job function into a single readable string for the few
+// consumers that want one (AI prompts, truth-gate source text, contact-role
+// overlap). Blank entries are dropped.
+export function formatRoles(roles: string[]): string {
+  return roles.map((r) => r.trim()).filter(Boolean).join(", ");
+}
+
 // ---- Role / job-function similarity ----
 // Compares the user's stated job function to a posting title with token
 // overlap, so "Software Engineer" matches "Senior Software Engineer",

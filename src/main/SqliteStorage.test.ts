@@ -27,7 +27,7 @@ describe("SqliteStorage basics", () => {
     const s = await makeStorage();
     expect(await s.getProfile()).toBeNull();
     await s.saveProfile({
-      jobFunction: "Engineer",
+      jobFunction: ["Engineer", "Backend Engineer"],
       level: "senior",
       location: "Remote",
       skills: ["typescript"],
@@ -40,14 +40,36 @@ describe("SqliteStorage basics", () => {
     const p = await s.getProfile();
     expect(p?.level).toBe("senior");
     expect(p?.skills).toEqual(["typescript"]);
+    expect(p?.jobFunction).toEqual(["Engineer", "Backend Engineer"]);
     expect(p?.baseCountry).toBe("nigeria");
     expect(p?.supplementaryFacts).toEqual(["Led a migration to TypeScript."]);
+  });
+
+  it("migrates a legacy single-string jobFunction to a one-element array", async () => {
+    const s = await makeStorage();
+    // Simulate an old DB row where jobFunction was stored as plain TEXT.
+    await s.saveProfile({
+      jobFunction: ["Engineer"],
+      level: "mid",
+      location: "Remote",
+      skills: [],
+      industries: [],
+      yearsExperience: 3,
+      baseCountry: "",
+      workAuthorizations: [],
+      supplementaryFacts: [],
+    });
+    // Overwrite the column with a raw legacy value, bypassing saveProfile.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s as any).db.run("UPDATE profile SET jobFunction = 'Data Analyst' WHERE id = 1");
+    const p = await s.getProfile();
+    expect(p?.jobFunction).toEqual(["Data Analyst"]);
   });
 
   it("persists supplementary facts across add and remove round-trips", async () => {
     const s = await makeStorage();
     await s.saveProfile({
-      jobFunction: "Engineer",
+      jobFunction: ["Engineer"],
       level: "mid",
       location: "Remote",
       skills: ["typescript"],
@@ -218,7 +240,7 @@ describe("export / import round-trip (the 'never start over' guarantee)", () => 
   it("exports everything and reimports into a fresh store identically", async () => {
     const a = await makeStorage();
     await a.saveProfile({
-      jobFunction: "Engineer",
+      jobFunction: ["Engineer"],
       level: "mid",
       location: "Berlin",
       skills: ["go", "sql"],

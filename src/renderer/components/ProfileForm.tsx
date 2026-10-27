@@ -17,7 +17,9 @@ export function ProfileForm({
   profile: Profile | null;
   onSaved: () => void;
 }) {
-  const [jobFunction, setJobFunction] = useState(profile?.jobFunction ?? "");
+  const [jobFunction, setJobFunction] = useState(
+    profile?.jobFunction.join(", ") ?? "",
+  );
   const [level, setLevel] = useState<JobLevel>(profile?.level ?? "mid");
   const [location, setLocation] = useState(profile?.location ?? "");
   const [skills, setSkills] = useState(profile?.skills.join(", ") ?? "");
@@ -47,10 +49,19 @@ export function ProfileForm({
       .filter(Boolean);
   }
 
+  // Job functions keep their original casing (they're shown back to the user
+  // and in match reasons); role matching lowercases internally anyway.
+  function parseRoles(s: string): string[] {
+    return s
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean);
+  }
+
   async function save() {
     setSaving(true);
     await window.jobwell.saveProfile({
-      jobFunction,
+      jobFunction: parseRoles(jobFunction),
       level,
       location,
       skills: parseList(skills),
@@ -75,13 +86,18 @@ export function ProfileForm({
       </p>
 
       <label>
-        Job function
+        Job function(s)
         <input
           value={jobFunction}
-          placeholder="e.g. Software Engineer"
+          placeholder="e.g. Software Engineer, Backend Engineer"
           onChange={(e) => setJobFunction(e.target.value)}
         />
       </label>
+      <p className="hint">
+        Comma-separate multiple target roles if you're open to several. Each job
+        is scored against your best-matching role, so adding more never lowers a
+        strong match.
+      </p>
 
       <label>
         Level

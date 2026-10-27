@@ -45,8 +45,10 @@ export function inferLevelFromTitle(title: string): JobLevel {
 
 function scoreRole(profile: Profile, job: Job): MatchReason {
   const weight = WEIGHTS.role;
-  const fn = profile.jobFunction.trim();
-  if (!fn) {
+  const roles = (profile.jobFunction ?? [])
+    .map((r) => r.trim())
+    .filter(Boolean);
+  if (roles.length === 0) {
     return {
       factor: "role",
       points: Math.round(weight * 0.5),
@@ -54,12 +56,27 @@ function scoreRole(profile: Profile, job: Job): MatchReason {
       detail: "No job function set; scored neutrally. Set it in your profile for better ranking.",
     };
   }
-  const sim = roleSimilarity(fn, job.title);
-  const points = Math.round(weight * sim);
+  // Best-match across all target roles: a job is judged against whichever of
+  // your roles fits its title best, so adding more roles never lowers a strong
+  // match. Track which role won, for the explanation.
+  let bestSim = 0;
+  let bestRole = roles[0];
+  for (const role of roles) {
+    const sim = roleSimilarity(role, job.title);
+    if (sim > bestSim) {
+      bestSim = sim;
+      bestRole = role;
+    }
+  }
+  const points = Math.round(weight * bestSim);
   let detail: string;
-  if (sim >= 0.99) detail = `Title strongly matches your function (${fn}).`;
-  else if (sim > 0) detail = `Title partially matches your function (${fn}).`;
-  else detail = `Title doesn't match your function (${fn}).`;
+  if (bestSim >= 0.99) detail = `Title strongly matches your function (${bestRole}).`;
+  else if (bestSim > 0) detail = `Title partially matches your function (${bestRole}).`;
+  else
+    detail =
+      roles.length > 1
+        ? `Title doesn't match any of your functions (${roles.join(", ")}).`
+        : `Title doesn't match your function (${bestRole}).`;
   return { factor: "role", points, weight, detail };
 }
 

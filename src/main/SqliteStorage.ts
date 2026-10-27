@@ -271,7 +271,7 @@ export class SqliteStorage implements Storage {
     if (!row) return null;
     return {
       id: 1,
-      jobFunction: String(row.jobFunction),
+      jobFunction: parseJobFunction(row.jobFunction),
       level: row.level as Profile["level"],
       location: String(row.location),
       skills: JSON.parse(String(row.skills)),
@@ -297,7 +297,7 @@ export class SqliteStorage implements Storage {
          baseCountry=:baseCountry, workAuthorizations=:workAuthorizations,
          supplementaryFacts=:supplementaryFacts`,
       {
-        jobFunction: p.jobFunction,
+        jobFunction: JSON.stringify(p.jobFunction ?? []),
         level: p.level,
         location: p.location,
         skills: JSON.stringify(p.skills),
@@ -812,6 +812,26 @@ function normalizeParams(params: Record<string, unknown>): BindParams {
     out[`:${k}`] = value;
   }
   return out as unknown as BindParams;
+}
+
+// jobFunction migrated from a single TEXT string to a JSON string[]. Tolerate
+// both: a legacy plain value like "Engineer" becomes ["Engineer"]; a JSON
+// array parses straight through. Empty/blank → [].
+function parseJobFunction(raw: unknown): string[] {
+  if (raw === null || raw === undefined) return [];
+  const s = String(raw).trim();
+  if (!s) return [];
+  if (s.startsWith("[")) {
+    try {
+      const arr = JSON.parse(s);
+      if (Array.isArray(arr)) {
+        return arr.map((x) => String(x).trim()).filter(Boolean);
+      }
+    } catch {
+      // fall through to treat as a single legacy value
+    }
+  }
+  return [s];
 }
 
 function rowToJob(row: Record<string, unknown>): Job {

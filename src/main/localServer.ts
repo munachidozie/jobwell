@@ -72,7 +72,9 @@ export function startLocalServer(service: JobService): Promise<number> {
               profile: profile
                 ? {
                     location: profile.location,
-                    jobFunction: profile.jobFunction,
+                    // jobFunction is now a list; expose the primary (first)
+                    // role for single-field autofill in the extension.
+                    jobFunction: profile.jobFunction?.[0] ?? "",
                   }
                 : null,
               resumeFileName: resume?.fileName ?? null,

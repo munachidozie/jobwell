@@ -4,7 +4,7 @@ import type { Job, Profile } from "./types";
 
 const profile: Profile = {
   id: 1,
-  jobFunction: "Software Engineer",
+  jobFunction: ["Software Engineer"],
   level: "senior",
   location: "Remote",
   skills: ["typescript", "react", "node", "sql"],
@@ -113,7 +113,7 @@ describe("scoreJob", () => {
   it("matches similar skills, not just exact words (react credits 'frontend')", () => {
     const frontendProfile: Profile = {
       ...profile,
-      jobFunction: "Frontend Engineer",
+      jobFunction: ["Frontend Engineer"],
       skills: ["react"],
     };
     const j = job({
@@ -125,5 +125,48 @@ describe("scoreJob", () => {
     )!;
     // "react" isn't literally in the text, but "frontend" is a related term.
     expect(skills.points).toBeGreaterThan(0);
+  });
+
+  it("scores role by the BEST-matching function, so extra roles don't dilute", () => {
+    const single: Profile = { ...profile, jobFunction: ["Data Analyst"] };
+    const multi: Profile = {
+      ...profile,
+      jobFunction: ["Software Engineer", "Data Analyst"],
+    };
+    const j = job({ title: "Senior Data Analyst", description: "" });
+    const roleSingle = scoreJob(single, j).reasons.find(
+      (r) => r.factor === "role",
+    )!;
+    const roleMulti = scoreJob(multi, j).reasons.find(
+      (r) => r.factor === "role",
+    )!;
+    // Adding an unrelated extra role must NOT lower the strong Data Analyst match.
+    expect(roleMulti.points).toBe(roleSingle.points);
+    expect(roleMulti.points).toBeGreaterThan(0);
+    expect(roleMulti.detail).toContain("Data Analyst");
+  });
+
+  it("a job matching ANY listed role scores well on role", () => {
+    const multi: Profile = {
+      ...profile,
+      jobFunction: ["Product Manager", "Software Engineer"],
+    };
+    const swe = scoreJob(
+      multi,
+      job({ title: "Software Engineer", description: "" }),
+    ).reasons.find((r) => r.factor === "role")!;
+    const pm = scoreJob(
+      multi,
+      job({ title: "Product Manager", description: "" }),
+    ).reasons.find((r) => r.factor === "role")!;
+    expect(swe.points).toBeGreaterThan(0);
+    expect(pm.points).toBeGreaterThan(0);
+  });
+
+  it("treats an empty job-function list as neutral", () => {
+    const none: Profile = { ...profile, jobFunction: [] };
+    const role = scoreJob(none, job({ title: "Engineer", description: "" }))
+      .reasons.find((r) => r.factor === "role")!;
+    expect(role.detail).toContain("No job function set");
   });
 });

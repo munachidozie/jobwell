@@ -19,7 +19,11 @@ export interface Job {
 
 export interface Profile {
   id: number; // single-row table, always 1
-  jobFunction: string;
+  // Target role(s) you're open to, e.g. ["Software Engineer", "Backend Engineer"].
+  // Match scoring takes the BEST-matching role per job, so being open to several
+  // titles never dilutes a strong match. A single-element list behaves like one
+  // role. Older single-string profiles are migrated to a one-element array.
+  jobFunction: string[];
   level: JobLevel;
   location: string;
   skills: string[]; // normalized lowercase keywords

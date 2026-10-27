@@ -24,6 +24,7 @@ import {
   type StoredJobSource,
 } from "@shared/storage";
 import { scoreJob } from "@shared/matching";
+import { formatRoles } from "@shared/synonyms";
 import { applyFilter } from "@shared/filtering";
 import { keywordGap, readability, tailorTruthfully } from "@shared/resume";
 import { checkTruth, type TruthSources } from "@shared/truthGate";
@@ -393,7 +394,7 @@ export class JobService {
     ]);
     return rankContacts(contacts, {
       targetCompanies,
-      jobFunction: profile?.jobFunction ?? "",
+      jobFunction: formatRoles(profile?.jobFunction ?? []),
     });
   }
 
@@ -423,7 +424,7 @@ export class JobService {
       (contact.position ? `, ${contact.position}` : "") +
       (contact.company ? ` at ${contact.company}` : "") +
       `.\n\n` +
-      `Sender's target role: ${profile?.jobFunction ?? "(unspecified)"}\n` +
+      `Sender's target role(s): ${formatRoles(profile?.jobFunction ?? []) || "(unspecified)"}\n` +
       `Sender's resume:\n${resume?.text.slice(0, 2500) ?? "(no resume imported)"}\n\n` +
       "Write a short outreach message asking to connect about opportunities, " +
       "referencing only truthful details about the sender.";
@@ -494,7 +495,7 @@ export class JobService {
       `Job: ${job.title} at ${job.company}\n` +
       `Location/model: ${job.location} (${job.workModel})\n\n` +
       `Job description:\n${job.description.slice(0, 2500)}\n\n` +
-      `Candidate target role: ${profile?.jobFunction ?? "(unspecified)"}\n` +
+      `Candidate target role(s): ${formatRoles(profile?.jobFunction ?? []) || "(unspecified)"}\n` +
       `Candidate resume:\n${resume?.text.slice(0, 3500) ?? "(no resume imported)"}`;
     const result = await this.deps.chat({
       provider: cfg.provider,
@@ -577,7 +578,7 @@ export class JobService {
       resumeText: `${resume?.text ?? ""}${allExtra ? `\n${allExtra}` : ""}`,
       profileSkills: profile?.skills ?? [],
       profileIndustries: profile?.industries ?? [],
-      jobFunction: profile?.jobFunction ?? "",
+      jobFunction: formatRoles(profile?.jobFunction ?? []),
       yearsExperience: profile?.yearsExperience ?? 0,
       jobTitle: job?.title,
       jobCompany: job?.company,
