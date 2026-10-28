@@ -46,7 +46,7 @@ importers:
         specifier: ^33.2.1
         version: 33.4.11(supports-color@8.1.1)
       electron-builder:
-        specifier: ^25.1.8
+w        specifier: 25.1.8
         version: 25.1.8(bluebird@3.7.2)(electron-builder-squirrel-windows@25.1.8)(supports-color@8.1.1)
       react:
         specifier: ^18.3.1
