@@ -13,6 +13,13 @@ async function makeService() {
     secrets: { hasApiKey: () => false, storeApiKey: () => {}, clearApiKey: () => {} },
     pickAndExtractResume: async () => null,
     pickAndParseContactsCsv: async () => null,
+    resolveJobLink: async () => ({
+      ok: false,
+      job: null,
+      draft: null,
+      message: "",
+      recurringSuggestion: null,
+    }),
     fetchFxRates: async () => null,
     fetchCustom: async () => [],
   });

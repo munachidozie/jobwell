@@ -14,6 +14,7 @@ import { fetchBoards } from "./scrapers";
 import { fetchCustom } from "./scrapers/custom";
 import { pickAndExtractResume } from "./resume";
 import { pickAndParseContactsCsv } from "./contacts";
+import { resolveJobLink } from "./jobLinkResolver";
 import { chat, clearApiKey, hasApiKey, storeApiKey } from "./ai";
 import { fetchFxRates } from "./fx";
 import { decryptBackup, encryptBackup, isEncryptedEnvelope } from "./cryptoBackup";
@@ -48,6 +49,7 @@ async function createService(): Promise<JobService> {
     pickAndExtractResume,
     pickAndParseContactsCsv,
     fetchFxRates,
+    resolveJobLink,
     fetchCustom,
   });
 }
@@ -118,6 +120,29 @@ function registerIpc(): void {
 
   ipcMain.handle("jobs:list", () => service.listJobs());
   ipcMain.handle("status:history", () => service.listStatusHistory());
+
+  // Add a job by link
+  ipcMain.handle("jobs:resolveLink", (_e, url: string) =>
+    service.resolveJobLink(url),
+  );
+  ipcMain.handle(
+    "jobs:addManual",
+    (
+      _e,
+      input: {
+        url: string;
+        title: string;
+        company: string;
+        location: string;
+        description: string;
+      },
+    ) => service.addManualJob(input),
+  );
+  ipcMain.handle(
+    "jobs:registerSite",
+    (_e, input: { url: string; label: string | null }) =>
+      service.registerSiteAsSource(input),
+  );
   ipcMain.handle("fx:status", () => service.getFxStatus());
   // No board list passed — the service fetches the user's enabled sources.
   ipcMain.handle("jobs:refresh", () => service.refreshJobs());
@@ -188,6 +213,11 @@ function registerIpc(): void {
     "ai:coverLetter",
     (_e, jobId: string, gapFacts?: string[]) =>
       service.generateCoverLetter(jobId, gapFacts),
+  );
+  ipcMain.handle(
+    "ai:tailorResume",
+    (_e, jobId: string, gapFacts?: string[]) =>
+      service.tailorResumeWithAi(jobId, gapFacts),
   );
   ipcMain.handle("ai:ask", (_e, question: string) =>
     service.askAssistant(question),

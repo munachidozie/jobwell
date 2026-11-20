@@ -23,6 +23,16 @@ const api: JobWellApi = {
     ipcRenderer.invoke("profile:removeFact", fact),
   listJobs: (): Promise<JobWithMatch[]> => ipcRenderer.invoke("jobs:list"),
   listStatusHistory: () => ipcRenderer.invoke("status:history"),
+  resolveJobLink: (url: string) => ipcRenderer.invoke("jobs:resolveLink", url),
+  addManualJob: (input: {
+    url: string;
+    title: string;
+    company: string;
+    location: string;
+    description: string;
+  }) => ipcRenderer.invoke("jobs:addManual", input),
+  registerSiteAsSource: (input: { url: string; label: string | null }) =>
+    ipcRenderer.invoke("jobs:registerSite", input),
   getFxStatus: () => ipcRenderer.invoke("fx:status"),
   refreshJobs: (boards?: BoardRef[]) =>
     ipcRenderer.invoke("jobs:refresh", boards),
@@ -61,6 +71,8 @@ const api: JobWellApi = {
     ipcRenderer.invoke("interview:prep", jobId),
   generateCoverLetter: (jobId: string, gapFacts?: string[]) =>
     ipcRenderer.invoke("ai:coverLetter", jobId, gapFacts),
+  tailorResumeWithAi: (jobId: string, gapFacts?: string[]) =>
+    ipcRenderer.invoke("ai:tailorResume", jobId, gapFacts),
   getAiConfig: () => ipcRenderer.invoke("ai:getConfig"),
   setAiConfig: (config: AiConfigInput) =>
     ipcRenderer.invoke("ai:setConfig", config),

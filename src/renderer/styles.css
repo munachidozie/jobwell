@@ -1,27 +1,77 @@
+/* JobWell UI theme — dark, blue-accented, calm-professional with modern polish.
+   Pure styling: class names match the components; no markup/behavior changes.
+   Grounded in Laws of UX — clear hierarchy (Von Restorff), grouped regions
+   (Common Region/Proximity), generous spacing (Aesthetic–Usability), and
+   large, obvious primary actions (Fitts's Law). */
+
 :root {
-  --bg: #0f1115;
-  --panel: #171a21;
-  --panel-2: #1f232c;
-  --border: #2a2f3a;
-  --text: #e6e8ec;
-  --muted: #9aa2b1;
-  --accent: #5b9dff;
-  --strong: #39d98a;
-  --good: #6bc1ff;
+  /* Surfaces: layered dark blues rather than flat near-black, so cards and
+     controls read as distinct regions without harsh borders. */
+  --bg: #0e1116;
+  --bg-2: #121722;
+  --panel: #171d29;
+  --panel-2: #1e2633;
+  --panel-3: #263040;
+  --border: #2b3546;
+  --border-strong: #3a4659;
+
+  /* Text */
+  --text: #eef1f6;
+  --text-dim: #c3cad7;
+  --muted: #8a94a6;
+
+  /* One clear primary accent (blue), with a lighter tint + soft glow for
+     emphasis. Secondary hues are reserved for MEANING only. */
+  --accent: #4d8dff;
+  --accent-hover: #6aa0ff;
+  --accent-soft: rgba(77, 141, 255, 0.14);
+  --accent-glow: rgba(77, 141, 255, 0.35);
+  --on-accent: #06101f;
+
+  /* Semantic colors (match bands, eligibility, pay) — distinct from the
+     primary so they signal status, not actions. */
+  --strong: #3ddc97;
+  --good: #5ab0ff;
   --fair: #f5c451;
   --weak: #8b93a3;
   --danger: #ff6b6b;
+
+  /* Elevation + motion */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-pill: 999px;
+  --ease: 0.16s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
+  height: 100%;
+}
+
+body {
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-  background: var(--bg);
+  /* Subtle vertical gradient adds depth without distraction. */
+  background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
+  background-attachment: fixed;
   color: var(--text);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.25;
+  letter-spacing: -0.01em;
 }
 
 .app {
@@ -30,80 +80,132 @@ body {
   height: 100vh;
 }
 
+/* ---- Top bar ---------------------------------------------------------- */
 .topbar {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 12px 20px;
-  background: var(--panel);
+  padding: 12px 24px;
+  background: rgba(20, 25, 36, 0.85);
+  backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .brand {
   font-weight: 700;
-  font-size: 18px;
-  letter-spacing: 0.5px;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+  /* Blue gradient wordmark ties the app to the icon. */
+  background: linear-gradient(135deg, var(--accent-hover), var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .tabs {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   margin-left: 12px;
 }
 
 .tab {
-  padding: 6px 14px;
-  border-radius: 8px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   color: var(--muted);
   background: transparent;
   border: none;
   font-size: 14px;
+  font-weight: 500;
+  transition: color var(--ease), background var(--ease);
+}
+
+.tab:hover {
+  color: var(--text);
+  background: var(--panel-2);
 }
 
 .tab.active {
-  background: var(--panel-2);
-  color: var(--text);
+  background: var(--accent-soft);
+  color: var(--accent-hover);
 }
 
 .spacer {
   flex: 1;
 }
 
+/* ---- Buttons ---------------------------------------------------------- */
+button {
+  font-family: inherit;
+}
+
 button.primary {
   background: var(--accent);
-  color: #06101f;
+  color: var(--on-accent);
   border: none;
-  padding: 8px 14px;
-  border-radius: 8px;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
   font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
+  box-shadow: 0 0 0 0 var(--accent-glow);
+  transition: background var(--ease), box-shadow var(--ease), transform var(--ease);
+}
+
+button.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  box-shadow: 0 0 18px 0 var(--accent-glow);
+}
+
+button.primary:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 button.primary:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: default;
 }
 
 .content {
   overflow-y: auto;
-  padding: 20px;
+  padding: 28px 32px 48px;
 }
 
+/* ---- Job / generic cards --------------------------------------------- */
 .job {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 12px;
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 14px;
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 12px;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--ease), box-shadow var(--ease), transform var(--ease);
+}
+
+.job:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
 }
 
 .job h3 {
-  margin: 0 0 4px;
-  font-size: 16px;
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 650;
+}
+
+.job h3 a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.job h3 a:hover {
+  color: var(--accent-hover);
 }
 
 .job .meta {
@@ -111,26 +213,53 @@ button.primary:disabled {
   font-size: 13px;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
+  align-items: center;
+  margin-top: 2px;
 }
 
+/* ---- Badges ----------------------------------------------------------- */
 .badge {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
   font-size: 12px;
+  font-weight: 500;
   background: var(--panel-2);
-  color: var(--muted);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
 }
 
+.badge.alert {
+  background: rgba(245, 196, 81, 0.16);
+  color: var(--fair);
+  border-color: rgba(245, 196, 81, 0.3);
+}
+
+.badge.multi {
+  background: var(--accent-soft);
+  color: var(--good);
+  border-color: rgba(90, 176, 255, 0.3);
+}
+
+.badge.pay {
+  background: rgba(61, 220, 151, 0.14);
+  color: var(--strong);
+  border-color: rgba(61, 220, 151, 0.3);
+  font-weight: 600;
+}
+
+/* ---- Match score (the key Von Restorff element) ----------------------- */
 .score {
   text-align: right;
-  min-width: 120px;
+  min-width: 132px;
 }
 
 .score .pct {
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 30px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
 }
 
 .band-Strong {
@@ -147,68 +276,108 @@ button.primary:disabled {
 }
 
 .reasons {
-  margin-top: 8px;
-  font-size: 12px;
+  margin-top: 10px;
+  font-size: 13px;
   color: var(--muted);
-  border-top: 1px dashed var(--border);
-  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
 }
 
 .reasons div {
-  margin: 2px 0;
+  margin: 3px 0;
 }
 
+.reasons strong {
+  color: var(--text-dim);
+  text-transform: capitalize;
+}
+
+/* ---- Layout helpers --------------------------------------------------- */
 .row {
   display: flex;
   gap: 8px;
   align-items: center;
 }
 
-.status-select {
+/* ---- Inputs / selects ------------------------------------------------- */
+.status-select,
+.form input,
+.form select,
+.form textarea,
+.filter-input {
   background: var(--panel-2);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color var(--ease), box-shadow var(--ease);
 }
 
+.status-select:focus,
+.form input:focus,
+.form select:focus,
+.form textarea:focus,
+.filter-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.status-select {
+  cursor: pointer;
+}
+
+/* ---- Forms ------------------------------------------------------------ */
 .form {
-  max-width: 560px;
+  max-width: 620px;
   display: grid;
-  gap: 14px;
+  gap: 18px;
+}
+
+.form h2 {
+  margin: 0 0 2px;
+  font-size: 22px;
 }
 
 .form label {
   display: grid;
-  gap: 6px;
+  gap: 7px;
   font-size: 14px;
-}
-
-.form input,
-.form select {
-  background: var(--panel-2);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px;
-  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-dim);
 }
 
 .hint {
   color: var(--muted);
   font-size: 13px;
+  line-height: 1.5;
 }
 
 .empty {
   color: var(--muted);
   text-align: center;
-  padding: 60px 20px;
+  padding: 72px 24px;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.empty p:first-child {
+  font-size: 17px;
+  color: var(--text-dim);
 }
 
 a {
   color: var(--accent);
+  text-decoration: none;
 }
 
+a:hover {
+  text-decoration: underline;
+}
+
+/* ---- Filter bar ------------------------------------------------------- */
 .filterbar {
   display: flex;
   flex-wrap: wrap;
@@ -216,19 +385,14 @@ a {
   align-items: center;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 14px;
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
 }
 
 .filter-input {
-  background: var(--panel-2);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 13px;
-  min-width: 200px;
+  min-width: 220px;
 }
 
 .chips {
@@ -241,15 +405,22 @@ a {
   background: var(--panel-2);
   color: var(--muted);
   border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  padding: 5px 12px;
   font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
+  transition: all var(--ease);
+}
+
+.chip:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
 }
 
 .chip.on {
   background: var(--accent);
-  color: #06101f;
+  color: var(--on-accent);
   border-color: var(--accent);
 }
 
@@ -261,14 +432,18 @@ a {
   gap: 4px;
 }
 
+/* ---- Saved searches --------------------------------------------------- */
 .saved {
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .saved-title {
   color: var(--muted);
   font-size: 13px;
-  margin: 0 0 6px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 8px;
 }
 
 .saved-item {
@@ -277,9 +452,14 @@ a {
   gap: 8px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
   margin-bottom: 6px;
+  transition: border-color var(--ease);
+}
+
+.saved-item:hover {
+  border-color: var(--border-strong);
 }
 
 .saved-apply {
@@ -291,30 +471,36 @@ a {
   font-weight: 600;
 }
 
-.badge.alert {
-  background: var(--fair);
-  color: #1a1400;
+.saved-apply:hover {
+  color: var(--accent-hover);
 }
 
+/* ---- Danger tab / eligibility ---------------------------------------- */
 .tab.danger {
   color: var(--danger);
 }
 
+.tab.danger:hover {
+  background: rgba(255, 107, 107, 0.12);
+  color: var(--danger);
+}
+
 .elig {
-  margin-top: 8px;
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 6px;
+  margin-top: 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
   display: inline-block;
 }
 
 .elig-eligible {
-  background: rgba(57, 217, 138, 0.15);
+  background: rgba(61, 220, 151, 0.14);
   color: var(--strong);
 }
 
 .elig-eligible-with-sponsorship {
-  background: rgba(107, 193, 255, 0.15);
+  background: var(--accent-soft);
   color: var(--good);
 }
 
@@ -328,22 +514,16 @@ a {
   color: var(--muted);
 }
 
-.badge.multi {
-  background: rgba(91, 157, 255, 0.18);
-  color: var(--good);
-}
-
-.badge.pay {
-  background: rgba(57, 217, 138, 0.15);
-  color: var(--strong);
-  font-weight: 600;
-}
-
+/* ---- AI document panel (cover letter / tailored resume) --------------- */
 .coverletter {
   grid-column: 1 / -1;
-  margin-top: 12px;
+  margin-top: 16px;
   border-top: 1px solid var(--border);
-  padding-top: 12px;
+  padding-top: 16px;
+}
+
+.coverletter h4 {
+  font-size: 15px;
 }
 
 .letter-text {
@@ -352,31 +532,39 @@ a {
   background: var(--panel-2);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px;
-  font-size: 13px;
-  line-height: 1.5;
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  font-size: 13.5px;
+  line-height: 1.6;
   resize: vertical;
-  margin-top: 8px;
+  margin-top: 10px;
+  font-family: inherit;
+}
+
+.letter-text:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .truth-warn {
-  background: rgba(255, 107, 107, 0.1);
-  border: 1px solid rgba(255, 107, 107, 0.3);
-  border-radius: 8px;
-  padding: 10px;
-  margin: 8px 0;
+  background: rgba(255, 107, 107, 0.09);
+  border: 1px solid rgba(255, 107, 107, 0.28);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin: 10px 0;
   font-size: 13px;
+  line-height: 1.5;
 }
 
 .truth-warn code {
   background: var(--panel);
-  padding: 1px 5px;
+  padding: 1px 6px;
   border-radius: 4px;
+  color: var(--text);
 }
 
-/* Text-style buttons used for low-emphasis inline actions (remove a saved
-   fact, save a gap to profile, remove a contact). */
+/* ---- Low-emphasis text buttons --------------------------------------- */
 .link,
 .link-danger {
   background: none;
@@ -386,10 +574,15 @@ a {
   font-size: 13px;
   cursor: pointer;
   text-decoration: underline;
+  transition: color var(--ease);
 }
 
 .link {
   color: var(--good);
+}
+
+.link:hover {
+  color: var(--accent-hover);
 }
 
 .link-danger {
@@ -402,13 +595,13 @@ a {
   text-decoration: none;
 }
 
-/* Saved-facts list in the profile form. */
+/* ---- Saved-facts list ------------------------------------------------- */
 .fact-list {
   list-style: none;
   padding: 0;
-  margin: 8px 0 0;
+  margin: 10px 0 0;
   display: grid;
-  gap: 6px;
+  gap: 7px;
 }
 
 .fact-list li {
@@ -417,28 +610,41 @@ a {
   justify-content: space-between;
   gap: 12px;
   background: var(--panel-2);
-  padding: 6px 10px;
-  border-radius: 6px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 14px;
 }
 
-/* Pipeline analytics */
+/* ---- Pipeline analytics ---------------------------------------------- */
 .analytics-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 8px;
-  font-size: 13px;
+  margin-top: 10px;
+  font-size: 13.5px;
 }
 
 .analytics-table th,
 .analytics-table td {
   text-align: left;
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--panel-2);
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
 }
 
 .analytics-table th {
   color: var(--muted);
   font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.analytics-table tbody tr {
+  transition: background var(--ease);
+}
+
+.analytics-table tbody tr:hover {
+  background: var(--panel-2);
 }
 
 .analytics-table td:not(:first-child),
@@ -448,49 +654,51 @@ a {
 
 .funnel {
   display: grid;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 10px;
+  margin-top: 10px;
 }
 
 .funnel-row {
   display: grid;
-  grid-template-columns: 110px 1fr auto;
+  grid-template-columns: 116px 1fr auto;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .funnel-label {
   font-size: 13px;
-  color: var(--muted);
+  color: var(--text-dim);
+  font-weight: 500;
 }
 
 .funnel-bar-track {
   background: var(--panel-2);
-  border-radius: 6px;
-  height: 18px;
+  border-radius: var(--radius-pill);
+  height: 20px;
   overflow: hidden;
 }
 
 .funnel-bar {
   height: 100%;
-  background: var(--good);
-  border-radius: 6px;
-  min-width: 2px;
-  transition: width 0.2s ease;
+  background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+  border-radius: var(--radius-pill);
+  min-width: 3px;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .funnel-count {
   font-size: 13px;
-  min-width: 90px;
+  min-width: 96px;
   text-align: right;
+  color: var(--text-dim);
 }
 
-/* Per-application stage timeline */
+/* ---- Per-application stage timeline ----------------------------------- */
 .timeline {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 2px;
+  gap: 6px 2px;
   font-size: 13px;
 }
 
@@ -501,28 +709,45 @@ a {
 
 .timeline-arrow {
   color: var(--muted);
-  margin: 0 4px;
+  margin: 0 6px;
 }
 
-/* Drag-and-drop CSV import */
+/* ---- Drag-and-drop CSV import ----------------------------------------- */
 .dropzone {
   margin-top: 16px;
-  padding: 28px 20px;
-  border: 2px dashed var(--panel-2);
-  border-radius: 10px;
+  padding: 32px 24px;
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius);
   text-align: center;
   color: var(--muted);
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color var(--ease), background var(--ease), color var(--ease);
 }
 
 .dropzone.dragover {
-  border-color: var(--good);
-  background: rgba(107, 193, 255, 0.08);
+  border-color: var(--accent);
+  background: var(--accent-soft);
   color: var(--text);
 }
 
 .form.drag-active {
-  outline: 2px dashed var(--good);
+  outline: 2px dashed var(--accent);
   outline-offset: 6px;
-  border-radius: 10px;
+  border-radius: var(--radius);
+}
+
+/* ---- Scrollbar polish (dark, unobtrusive) ----------------------------- */
+.content::-webkit-scrollbar {
+  width: 12px;
+}
+
+.content::-webkit-scrollbar-thumb {
+  background: var(--panel-3);
+  border-radius: var(--radius-pill);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+.content::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+  background-clip: padding-box;
 }

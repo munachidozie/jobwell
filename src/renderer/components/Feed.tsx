@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { AiResult, ApplicationStatus, EligibilityInfo } from "@shared/types";
 import type { DedupedJob } from "@shared/dedup";
+import { AiDocPanel } from "./AiDocPanel";
 
 const STATUSES: ApplicationStatus[] = [
   "Applied",
@@ -37,10 +38,12 @@ function JobCard({
   const [letter, setLetter] = useState<AiResult | null>(null);
   const [letterBusy, setLetterBusy] = useState(false);
   const [showLetter, setShowLetter] = useState(false);
-  // Guided gap-fill: user-supplied facts, keyed by the flagged value.
-  const [gapFacts, setGapFacts] = useState<Record<string, string>>({});
-  // Flagged values whose typed fact the user explicitly saved to their profile.
-  const [savedGaps, setSavedGaps] = useState<Record<string, boolean>>({});
+  // Tailored-resume state for this card (same shape/flow as the cover letter).
+  const [resume, setResume] = useState<AiResult | null>(null);
+  const [resumeBusy, setResumeBusy] = useState(false);
+  const [showResume, setShowResume] = useState(false);
+
+  const safeCompany = job.company.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
 
   async function setStatus(status: ApplicationStatus) {
     await window.jobwell.setApplicationStatus(job.id, status);
@@ -60,37 +63,36 @@ function JobCard({
     }
   }
 
-  // Regenerate using the facts the user typed for each flagged gap. Only
-  // non-empty facts are sent; the truth gate re-checks against them so the
-  // AI may use them but still can't fabricate beyond what the user supplied.
-  async function regenerateWithFacts() {
-    const facts = Object.values(gapFacts)
-      .map((f) => f.trim())
-      .filter(Boolean);
-    await genCoverLetter(facts);
-  }
-
-  // Persist a single gap fact to the profile so it's remembered and stops being
-  // flagged next time. Only saves what the user actually typed.
-  async function saveGapToProfile(value: string) {
-    const fact = (gapFacts[value] ?? "").trim();
-    if (!fact) return;
-    await window.jobwell.addSupplementaryFact(fact);
-    setSavedGaps((s) => ({ ...s, [value]: true }));
-  }
-
-  async function copyLetter() {
-    if (letter?.text) await navigator.clipboard.writeText(letter.text);
+  async function genTailoredResume(facts?: string[]) {
+    setResumeBusy(true);
+    setShowResume(true);
+    try {
+      const res = await window.jobwell.tailorResumeWithAi(job.id, facts);
+      setResume(res);
+    } catch (e) {
+      setResume({ ok: false, text: String(e), usedProvider: "none" });
+    } finally {
+      setResumeBusy(false);
+    }
   }
 
   async function exportLetter(format: "pdf" | "docx") {
     if (!letter?.text) return;
-    const safeCompany = job.company.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
     await window.jobwell.exportDocument(
       format,
       `Cover Letter — ${job.title} at ${job.company}`,
       letter.text,
       `cover-letter-${safeCompany}`,
+    );
+  }
+
+  async function exportResume(format: "pdf" | "docx") {
+    if (!resume?.text) return;
+    await window.jobwell.exportDocument(
+      format,
+      `Resume — ${job.title} at ${job.company}`,
+      resume.text,
+      `resume-${safeCompany}`,
     );
   }
 
@@ -190,119 +192,40 @@ function JobCard({
             {letterBusy ? "Writing…" : "✍️ Cover letter"}
           </button>
         </div>
+        <div className="row" style={{ marginTop: 6, justifyContent: "flex-end" }}>
+          <button
+            className="tab"
+            onClick={() => genTailoredResume()}
+            disabled={resumeBusy}
+            title="Rewrite your resume to fit this job, using only your real experience"
+          >
+            {resumeBusy ? "Tailoring…" : "📄 Tailor resume"}
+          </button>
+        </div>
       </div>
 
-      {/* Cover letter spans the full card width when shown. */}
+      {/* AI documents span the full card width when shown. */}
       {showLetter && (
-        <div className="coverletter">
-          <div className="row">
-            <h4 style={{ margin: 0, flex: 1 }}>Cover letter</h4>
-            {letter?.ok && (
-              <>
-                <button className="tab" onClick={copyLetter}>
-                  Copy
-                </button>
-                <button className="tab" onClick={() => exportLetter("pdf")}>
-                  PDF
-                </button>
-                <button className="tab" onClick={() => exportLetter("docx")}>
-                  Word
-                </button>
-              </>
-            )}
-            <button className="tab" onClick={() => setShowLetter(false)}>
-              Close
-            </button>
-          </div>
-
-          {letterBusy && <p className="hint">Generating…</p>}
-
-          {letter && !letter.ok && (
-            <p className="hint" style={{ color: "var(--danger)" }}>
-              {letter.text}
-            </p>
-          )}
-
-          {letter?.ok && (
-            <>
-              {letter.truthViolations && letter.truthViolations.length > 0 && (
-                <div className="truth-warn">
-                  <strong>
-                    ⚠️ These aren't in your resume/profile. If you genuinely
-                    have the experience, describe it in your own words and
-                    regenerate — otherwise leave blank to drop it.
-                  </strong>
-                  <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
-                    {letter.truthViolations.map((v, i) => (
-                      <div key={i}>
-                        <div style={{ fontSize: 13, marginBottom: 2 }}>
-                          <code>{v.value}</code> — {v.reason}
-                        </div>
-                        <input
-                          className="filter-input"
-                          style={{ width: "100%" }}
-                          placeholder={`Your real experience with "${v.value}" (or leave blank)`}
-                          value={gapFacts[v.value] ?? ""}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setGapFacts((g) => ({ ...g, [v.value]: val }));
-                            // Editing invalidates a prior save for this gap.
-                            setSavedGaps((s) =>
-                              s[v.value] ? { ...s, [v.value]: false } : s,
-                            );
-                          }}
-                        />
-                        <div style={{ marginTop: 4 }}>
-                          {savedGaps[v.value] ? (
-                            <span
-                              className="hint"
-                              style={{ color: "var(--strong)" }}
-                            >
-                              💾 Saved to profile — won't be flagged next time.
-                            </span>
-                          ) : (
-                            <button
-                              className="link"
-                              disabled={!(gapFacts[v.value] ?? "").trim()}
-                              onClick={() => saveGapToProfile(v.value)}
-                            >
-                              💾 Save to profile
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="row" style={{ marginTop: 10 }}>
-                    <button
-                      className="primary"
-                      onClick={regenerateWithFacts}
-                      disabled={letterBusy}
-                    >
-                      Regenerate with my facts
-                    </button>
-                  </div>
-                  <p className="hint" style={{ marginTop: 6 }}>
-                    Only what you type here is added — the AI still can't invent
-                    anything beyond your resume and these facts.
-                  </p>
-                </div>
-              )}
-              {letter.truthViolations &&
-                letter.truthViolations.length === 0 && (
-                  <p className="hint" style={{ color: "var(--strong)" }}>
-                    ✅ Every fact in this draft traces to your resume/profile.
-                  </p>
-                )}
-              <textarea
-                className="letter-text"
-                value={letter.text}
-                readOnly
-                rows={14}
-              />
-            </>
-          )}
-        </div>
+        <AiDocPanel
+          title="Cover letter"
+          result={letter}
+          busy={letterBusy}
+          onRegenerate={(facts) => genCoverLetter(facts)}
+          onClose={() => setShowLetter(false)}
+          onExport={exportLetter}
+          onCopy={() => letter?.text && navigator.clipboard.writeText(letter.text)}
+        />
+      )}
+      {showResume && (
+        <AiDocPanel
+          title="Tailored resume"
+          result={resume}
+          busy={resumeBusy}
+          onRegenerate={(facts) => genTailoredResume(facts)}
+          onClose={() => setShowResume(false)}
+          onExport={exportResume}
+          onCopy={() => resume?.text && navigator.clipboard.writeText(resume.text)}
+        />
       )}
     </div>
   );

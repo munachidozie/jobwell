@@ -15,11 +15,23 @@ const SIZE = 256;
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = join(here, "..", "build");
 
-// --- colors (RGBA) ---
-const ACCENT = [0x6b, 0xc1, 0xff, 0xff]; // outer border
-const DARK = [0x0f, 0x11, 0x15, 0xff]; // tile
-const GREEN = [0x39, 0xd9, 0x8a, 0xff]; // letters
+// --- colors (RGBA) --- blue theme, matching the in-app accent.
+const ACCENT_TOP = [0x6a, 0xa0, 0xff, 0xff]; // lighter blue (gradient top)
+const ACCENT_BOT = [0x3a, 0x74, 0xe6, 0xff]; // deeper blue (gradient bottom)
+const DARK_TOP = [0x16, 0x1d, 0x29, 0xff]; // tile gradient top (matches --panel)
+const DARK_BOT = [0x0e, 0x11, 0x16, 0xff]; // tile gradient bottom (matches --bg)
+const LETTER = [0xf2, 0xf6, 0xff, 0xff]; // near-white letters for contrast
 const CLEAR = [0, 0, 0, 0];
+
+// Linear blend between two RGBA colors by t in [0,1].
+function mix(a, b, t) {
+  return [
+    Math.round(a[0] + (b[0] - a[0]) * t),
+    Math.round(a[1] + (b[1] - a[1]) * t),
+    Math.round(a[2] + (b[2] - a[2]) * t),
+    0xff,
+  ];
+}
 
 const px = Buffer.alloc(SIZE * SIZE * 4);
 function set(x, y, [r, g, b, a]) {
@@ -41,12 +53,16 @@ function inRoundRect(x, y, left, top, right, bottom, radius) {
   return dx * dx + dy * dy <= radius * radius;
 }
 
-// Base: transparent, then accent rounded tile, then inset dark tile.
+// Base: transparent, then a blue gradient rounded tile (the "chip"), then an
+// inset dark gradient tile — both vertical gradients for a modern, glossy feel.
 for (let y = 0; y < SIZE; y++) {
+  const t = y / (SIZE - 1);
+  const accent = mix(ACCENT_TOP, ACCENT_BOT, t);
+  const dark = mix(DARK_TOP, DARK_BOT, t);
   for (let x = 0; x < SIZE; x++) {
     let c = CLEAR;
-    if (inRoundRect(x, y, 0, 0, 255, 255, 48)) c = ACCENT;
-    if (inRoundRect(x, y, 20, 20, 235, 235, 36)) c = DARK;
+    if (inRoundRect(x, y, 0, 0, 255, 255, 56)) c = accent;
+    if (inRoundRect(x, y, 18, 18, 237, 237, 42)) c = dark;
     set(x, y, c);
   }
 }
@@ -59,10 +75,10 @@ function rect(x0, y0, w, h, color) {
 
 const T = 16; // stroke thickness
 // "J": top bar + vertical stem + bottom hook.
-rect(60, 80, 70, T, GREEN); // top bar
-rect(104, 80, T, 80, GREEN); // stem
-rect(66, 144, 54, T, GREEN); // bottom
-rect(60, 120, T, 40, GREEN); // hook up-left
+rect(60, 80, 70, T, LETTER); // top bar
+rect(104, 80, T, 80, LETTER); // stem
+rect(66, 144, 54, T, LETTER); // bottom
+rect(60, 120, T, 40, LETTER); // hook up-left
 
 // "W": two V shapes via four diagonals approximated with steps.
 function diag(x0, y0, x1, y1, color) {
@@ -73,10 +89,10 @@ function diag(x0, y0, x1, y1, color) {
     rect(x, y, T, T, color);
   }
 }
-diag(150, 80, 166, 160, GREEN);
-diag(166, 160, 182, 100, GREEN);
-diag(182, 100, 198, 160, GREEN);
-diag(198, 160, 214, 80, GREEN);
+diag(150, 80, 166, 160, LETTER);
+diag(166, 160, 182, 100, LETTER);
+diag(182, 100, 198, 160, LETTER);
+diag(198, 160, 214, 80, LETTER);
 
 // --- PNG encode ---
 function chunk(type, data) {

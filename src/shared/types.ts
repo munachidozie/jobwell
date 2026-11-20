@@ -94,6 +94,29 @@ export interface StatusHistoryEntryDTO {
   changedAt: string; // ISO timestamp
 }
 
+// A job parsed from a pasted link, possibly partial (the UI confirms/edits).
+export interface ExtractedJobDTO {
+  title: string;
+  company: string;
+  location: string;
+  description: string;
+  url: string;
+  via: "json-ld" | "heuristic" | "empty";
+}
+
+// Result of resolving a pasted job URL (add-by-link flow).
+export interface ResolveLinkResult {
+  ok: boolean;
+  // A complete job when we could build one (known board / clean JSON-LD).
+  job: Job | null;
+  // Partial fields for the confirm / manual-entry form.
+  draft: ExtractedJobDTO | null;
+  // Human-readable explanation of how it was read (or why not).
+  message: string;
+  // When set, the UI may offer to add this site as a recurring source.
+  recurringSuggestion: { host: string; url: string } | null;
+}
+
 export interface EligibilityInfo {
   verdict:
     | "eligible"
@@ -173,6 +196,20 @@ export interface JobWellApi {
   listJobs(): Promise<JobWithMatch[]>;
   listStatusHistory(): Promise<StatusHistoryEntryDTO[]>;
   refreshJobs(boards?: BoardRef[]): Promise<{ added: number; total: number }>;
+  // Add a job by link: resolve a pasted URL, then save the confirmed job and
+  // (optionally) register the site as a recurring source.
+  resolveJobLink(url: string): Promise<ResolveLinkResult>;
+  addManualJob(input: {
+    url: string;
+    title: string;
+    company: string;
+    location: string;
+    description: string;
+  }): Promise<{ jobId: string; added: boolean }>;
+  registerSiteAsSource(input: {
+    url: string;
+    label: string | null;
+  }): Promise<{ added: boolean; error: string | null }>;
   getFxStatus(): Promise<{ date: string | null; fetchedAt: string | null } | null>;
   setApplicationStatus(
     jobId: string,
@@ -210,6 +247,8 @@ export interface JobWellApi {
   // Interview prep for a tracked (or any known) job.
   prepInterview(jobId: string): Promise<InterviewPrep | null>;
   generateCoverLetter(jobId: string, gapFacts?: string[]): Promise<AiResult>;
+  // Rewrite the user's real resume to fit a job, truth-gated like cover letters.
+  tailorResumeWithAi(jobId: string, gapFacts?: string[]): Promise<AiResult>;
   getAiConfig(): Promise<AiConfigPublic>;
   setAiConfig(config: AiConfigInput): Promise<AiConfigPublic>;
   askAssistant(question: string): Promise<AiResult>;

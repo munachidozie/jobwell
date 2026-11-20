@@ -3,6 +3,7 @@ import type { JobFilter, JobWithMatch, Profile } from "@shared/types";
 import { applyFilter, sortByEligibilityThenMatch } from "@shared/filtering";
 import { dedupeJobs } from "@shared/dedup";
 import { Feed } from "./components/Feed";
+import { AddJobByLink } from "./components/AddJobByLink";
 import { Tracker } from "./components/Tracker";
 import { ProfileForm } from "./components/ProfileForm";
 import { FilterBar } from "./components/FilterBar";
@@ -155,6 +156,7 @@ export function App() {
       <div className="content">
         {tab === "feed" && (
           <>
+            <AddJobByLink onAdded={load} />
             <FilterBar
               filter={filter}
               onChange={setFilter}

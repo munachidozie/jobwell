@@ -64,6 +64,10 @@ export interface ServiceDeps {
   >;
   // Fetch live FX rates (units per USD). Returns null on failure.
   fetchFxRates(): Promise<import("@shared/storage").FxRates | null>;
+  // Resolve a pasted job URL into a Job (known board / JSON-LD) or a draft.
+  resolveJobLink(
+    url: string,
+  ): Promise<import("./jobLinkResolver").ResolveResult>;
   // Fetch a user-configured custom RSS/JSON source.
   fetchCustom(
     cfg: import("@shared/storage").CustomSourceConfig,
@@ -229,6 +233,74 @@ export class JobService {
     const added = await this.storage.upsertJobs(jobs);
     const total = (await this.storage.listJobs()).length;
     return { added, total };
+  }
+
+  // ---- Add a job by link ----
+
+  // Resolve a pasted URL: known-board → full job via the existing scraper;
+  // other pages → JSON-LD or heuristic draft; blocked sites → manual-entry
+  // prompt. Does not save anything; the UI confirms first.
+  resolveJobLink(
+    url: string,
+  ): Promise<import("./jobLinkResolver").ResolveResult> {
+    return this.deps.resolveJobLink(url);
+  }
+
+  // Save a user-confirmed job (from the add-by-link flow). Fields come back
+  // possibly edited by the user, so we rebuild the Job from them here. When the
+  // resolver reported a ready Job (known board) its id is reused; otherwise a
+  // stable URL-derived id dedupes re-adds. Returns the saved job's id + whether
+  // it was newly added.
+  async addManualJob(input: {
+    url: string;
+    title: string;
+    company: string;
+    location: string;
+    description: string;
+  }): Promise<{ jobId: string; added: boolean }> {
+    const { toJob } = await import("@shared/jobLink");
+    const { inferWorkModel } = await import("./scrapers");
+    const job = toJob(
+      {
+        title: input.title.trim(),
+        company: input.company.trim(),
+        location: input.location.trim(),
+        description: input.description.trim(),
+        url: input.url.trim(),
+        via: "json-ld",
+      },
+      inferWorkModel,
+    );
+    const addedCount = await this.storage.upsertJobs([job]);
+    return { jobId: job.id, added: addedCount > 0 };
+  }
+
+  // Optionally register the host of a pasted link as a recurring custom source,
+  // so JobWell keeps pulling from it on future refreshes. Reuses the existing
+  // custom-source machinery (RSS/JSON). We can't know the feed format from a
+  // page URL, so we store it as an RSS attempt against the origin — the user
+  // can refine it in the Sources tab. Returns the created source's id.
+  async registerSiteAsSource(input: {
+    url: string;
+    label: string | null;
+  }): Promise<{ added: boolean; error: string | null }> {
+    let origin: string;
+    let host: string;
+    try {
+      const u = new URL(input.url);
+      origin = `${u.protocol}//${u.host}`;
+      host = u.hostname.replace(/^www\./, "");
+    } catch {
+      return { added: false, error: "Invalid URL." };
+    }
+    await this.storage.addJobSource({
+      provider: "custom",
+      board: host,
+      label: input.label ?? host,
+      enabled: true,
+      custom: { url: origin, format: "rss" },
+    });
+    return { added: true, error: null };
   }
 
   setApplicationStatus(
@@ -627,6 +699,78 @@ export class JobService {
     // Re-check against sources that now INCLUDE the user's supplied facts, so
     // facts they genuinely provided are accepted and only real fabrication is
     // flagged.
+    if (result.ok && result.text) {
+      const sources = await this.truthSources(jobId, extra);
+      if (sources) {
+        const check = checkTruth(result.text, sources);
+        if (!check.ok) {
+          return { ...result, truthViolations: check.violations };
+        }
+      }
+    }
+    return { ...result, truthViolations: [] };
+  }
+
+  // Rewrite the candidate's resume to fit a specific job: reword and reframe
+  // their REAL experience to mirror the role's language, add a tailored
+  // summary, and surface relevant skills — WITHOUT inventing anything. Same
+  // honesty model as the cover letter: the draft is re-checked by the truth
+  // gate against the resume + saved facts + any gap-fill facts the user typed,
+  // so fabricated skills/metrics/employers/tools get flagged, and genuine gaps
+  // are called out honestly rather than papered over. `gapFacts` lets the user
+  // supply true details to fill a flag, then regenerate. Returns an AiResult so
+  // it reuses the cover letter's gap-fill + export UI verbatim.
+  async tailorResumeWithAi(
+    jobId: string,
+    gapFacts?: string[],
+  ): Promise<AiResult> {
+    const resume = await this.storage.getResume();
+    const job = (await this.storage.listJobs()).find((j) => j.id === jobId);
+    const cfg = await this.storage.getAiConfig();
+    if (!job) {
+      return { ok: false, usedProvider: cfg.provider, text: "Job not found." };
+    }
+    if (!resume || !resume.text.trim()) {
+      return {
+        ok: false,
+        usedProvider: cfg.provider,
+        text: "Import your resume first (Resume tab) — tailoring rewrites your real resume, it won't invent one.",
+      };
+    }
+    const profile = await this.storage.getProfile();
+    const saved = (profile?.supplementaryFacts ?? []).filter((f) => f.trim());
+    const extra = [...saved, ...(gapFacts ?? []).filter((f) => f.trim())];
+    const system =
+      "You tailor a candidate's EXISTING resume to a specific job. You may " +
+      "reword, reorder, reframe, and write a short tailored summary so the " +
+      "resume reads as a strong fit for THIS role, mirroring the job's " +
+      "language. CRITICAL: use ONLY facts present in the candidate's resume " +
+      "and the candidate-provided facts. Do NOT invent or imply experience, " +
+      "skills, tools, employers, titles, dates, numbers, or metrics that are " +
+      "not already there — rephrasing real experience is fine, fabricating is " +
+      "not. If the role needs something the candidate lacks, DO NOT add it; " +
+      "leave it out. Keep it realistic and in the candidate's own history. " +
+      "Output a clean, ready-to-use resume in plain text.";
+    const user =
+      `Target job: ${job.title} at ${job.company}\n\n` +
+      `Job description:\n${job.description.slice(0, 2500)}\n\n` +
+      `Candidate's current resume:\n${resume.text.slice(0, 5000)}\n\n` +
+      (extra.length
+        ? `Additional TRUE facts the candidate provided (you may use these):\n- ${extra.join("\n- ")}\n\n`
+        : "") +
+      "Rewrite the resume tailored to this job, using only the candidate's " +
+      "real experience and the provided facts. Reword to fit the role; invent " +
+      "nothing.";
+    const result = await this.deps.chat({
+      provider: cfg.provider,
+      model: cfg.model,
+      baseUrl: cfg.baseUrl,
+      system,
+      user,
+    });
+
+    // Re-check the rewrite against the user's real sources (+ their gap-fill
+    // facts). Anything introduced beyond them is surfaced as a violation.
     if (result.ok && result.text) {
       const sources = await this.truthSources(jobId, extra);
       if (sources) {
